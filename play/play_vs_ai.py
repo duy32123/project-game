@@ -13,12 +13,25 @@ if str(ROOT) not in sys.path:
 
 from game.core import Action, SimpleFightingGame
 from game.render import GameRenderer
-from rl.opponents import PPOOpponent, ScriptedOpponent
+from rl.opponents import AdaptiveScriptedOpponent, PPOOpponent, ScriptedOpponent
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Play vs scripted AI or PPO model.")
+    parser.add_argument(
+        "--opponent",
+        type=str,
+        choices=["scripted", "adaptive", "ppo"],
+        default="scripted",
+        help="Opponent type: scripted | adaptive | ppo",
+    )
     parser.add_argument("--model", type=str, default="", help="Path to a PPO model zip or prefix.")
+    parser.add_argument(
+        "--adaptive-memory",
+        type=str,
+        default="checkpoints/adaptive_memory.json",
+        help="Path to JSON memory used by adaptive opponent.",
+    )
     return parser.parse_args()
 
 
@@ -79,11 +92,16 @@ def main() -> None:
     renderer = GameRenderer(game)
 
     scripted_ai = ScriptedOpponent()
-    model_ai = PPOOpponent(args.model) if args.model else None
+    adaptive_ai = AdaptiveScriptedOpponent(memory_path=args.adaptive_memory)
+    model_ai = PPOOpponent(args.model) if args.opponent == "ppo" and args.model else None
+
+    if args.opponent == "ppo" and model_ai is None:
+        raise ValueError("Bạn chọn --opponent ppo nhưng chưa truyền --model")
 
     running = True
     overlay = "Fight!"
     end_delay_frames = 120
+    match_logged = False
 
     while running:
         for event in pygame.event.get():
@@ -91,8 +109,11 @@ def main() -> None:
                 running = False
 
         player_action = keyboard_to_action()
-        if model_ai is not None:
+        if args.opponent == "ppo" and model_ai is not None:
             ai_action = model_ai.act(enemy_observation(game))
+        elif args.opponent == "adaptive":
+            adaptive_ai.record_player_action(player_action)
+            ai_action = adaptive_ai.act(game)
         else:
             ai_action = scripted_ai.act(game)
 
@@ -100,6 +121,9 @@ def main() -> None:
 
         if game.done:
             overlay = f"Winner: {game.winner} | ESC to quit"
+            if args.opponent == "adaptive" and not match_logged:
+                adaptive_ai.on_match_end(game.winner)
+                match_logged = True
             end_delay_frames -= 1
             keys = pygame.key.get_pressed()
             if keys[pygame.K_ESCAPE] or end_delay_frames <= 0:

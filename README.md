@@ -76,7 +76,22 @@ checkpoints/ppo_fighter
 ## 4) Chơi với bot đã train
 
 ```bash
-python -m play.play_vs_ai --model checkpoints/ppo_fighter
+python -m play.play_vs_ai --opponent ppo --model checkpoints/ppo_fighter
+```
+
+## 4.1) Chơi với bot "thích nghi" có trí nhớ qua nhiều trận
+
+Bot adaptive sẽ lưu thống kê thói quen của người chơi (đánh/thủ/nhảy/tỉ lệ thắng)
+vào file JSON và dùng lại ở những lần chơi sau.
+
+```bash
+python -m play.play_vs_ai --opponent adaptive --adaptive-memory checkpoints/adaptive_memory.json
+```
+
+Bạn có thể xóa file memory để "reset kinh nghiệm" của bot:
+
+```bash
+rm -f checkpoints/adaptive_memory.json
 ```
 
 ## 5) Ghi chú quan trọng
