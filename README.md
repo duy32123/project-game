@@ -64,19 +64,40 @@ python -m play.play_vs_ai
 ## 3) Train bot PPO
 
 ```bash
-python -m rl.train --timesteps 200000
+python -m rl.train --timesteps 200000 --n-envs 8 --learning-rate 3e-4
 ```
 
 Model mặc định sẽ được lưu vào:
 
 ```text
-checkpoints/ppo_fighter
+checkpoints/ppo_fighter.zip
+```
+
+Một lệnh train "kỹ" hơn (nhiều steps + nhiều env + bỏ qua eval cuối nếu chỉ muốn train):
+
+```bash
+python -m rl.train --timesteps 1000000 --n-envs 8 --learning-rate 3e-4 --skip-eval
 ```
 
 ## 4) Chơi với bot đã train
 
 ```bash
-python -m play.play_vs_ai --model checkpoints/ppo_fighter
+python -m play.play_vs_ai --opponent ppo --model checkpoints/ppo_fighter.zip
+```
+
+## 4.1) Chơi với bot "thích nghi" có trí nhớ qua nhiều trận
+
+Bot adaptive sẽ lưu thống kê thói quen của người chơi (đánh/thủ/nhảy/tỉ lệ thắng)
+vào file JSON và dùng lại ở những lần chơi sau.
+
+```bash
+python -m play.play_vs_ai --opponent adaptive --adaptive-memory checkpoints/adaptive_memory.json
+```
+
+Bạn có thể xóa file memory để "reset kinh nghiệm" của bot:
+
+```bash
+rm -f checkpoints/adaptive_memory.json
 ```
 
 ## 5) Ghi chú quan trọng
